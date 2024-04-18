@@ -1,5 +1,6 @@
 import pygame
 import random   # to generate random numbers to sort
+import math
 pygame.init()   # to  initialize pygame
 
 class DrawInformation:
@@ -29,10 +30,10 @@ class DrawInformation:
     def set_list(self, lst):
         self.lst = lst
         self.min_value = min(lst)
-        self.max_value = max(lst)
+        self.max_value = max(lst)   
 
         self.block_width = round((self.width - self.SIDE_PAD)/len(lst))
-        self.block_height = round((self.height - self.TOP_PAD)/(self.max_value - self.min_value))
+        self.block_height = math.floor((self.height - self.TOP_PAD)/(self.max_value - self.min_value))
         self.start_x = self.SIDE_PAD // 2
 
 # generating a list to sort
@@ -61,8 +62,12 @@ def draw(draw_info):
     draw_list(draw_info)     
     pygame.display.update()  # updates the window screen
 
-def draw_list(draw_info):
+def draw_list(draw_info, color_positions = {}, clear_bg = False):
     lst = draw_info.lst
+
+    if clear_bg:
+        clear_rect = (draw_info.SIDE_PAD//2, draw_info.TOP_PAD, draw_info.width - draw_info.SIDE_PAD, draw_info.height - draw_info.TOP_PAD)  #(x,y,width, height) 
+        pygame.draw.rect(draw_info.window, draw_info.BACKGROUND_COLOR, clear_rect)
 
     for i, val in enumerate(lst):   #gives index and value
         X = draw_info.start_x + i * draw_info.block_width
@@ -73,9 +78,29 @@ def draw_list(draw_info):
         
         color = draw_info.GRADIENTS[i % 3]   #0,1,2 (different gradients color)
 
+        if i in color_positions:
+            color = color_positions[i]
+
+
         pygame.draw.rect(draw_info.window, color, (X,Y, draw_info.block_width, draw_info.height))
 
+    if clear_bg:
+        pygame.display.update()
 
+def bubble_sort(draw_info, ascending = True):
+    lst = draw_info.lst
+
+    n = len(lst)
+    for i in range(n):
+        for j in range(0, n - i - 1):
+            if (lst[j] > lst[j+1] and ascending) or (lst[j] < lst[j+1] and not ascending):  # for both ascending and descending cases
+                lst[j], lst[j+1] = lst[j+1], lst[j]
+                draw_list(draw_info, {j: draw_info.GREEN, j+1: draw_info.RED}, True)
+                yield True   # it allows to iterate upto this point 1 single time, using yield, the bubble sort function becomes a generator
+    return lst
+
+# next() # first time, next is called, only first 2 elements are swapped, second time next is called, the next two elements are swapped..and so on..it is used below
+   
 def main():
     run = True
     clock = pygame.time.Clock()    # decides the delay to show the changes made
@@ -89,10 +114,20 @@ def main():
     sorting = False
     ascending = True
 
-    while run:
-        clock.tick(60)
+    sorting_algorithm = bubble_sort
+    sorting_algo_name = "Bubble Sort"
+    sorting_algorithm_generator = None
 
-        draw(draw_info)
+    while run:
+        clock.tick(120)  # the higher the faster.
+
+        if sorting:
+            try:
+                next(sorting_algorithm_generator)
+            except StopIteration:   # once the generator is finished, stopIteration is handled
+                sorting = False
+        else:
+            draw(draw_info)
 
         for event in pygame.event.get(): # gets every event that has been occuring in the running loop (running window)
             if event.type == pygame.QUIT:   # hitting the red cross button on the window screen
@@ -108,16 +143,17 @@ def main():
 
             elif event.key == pygame.K_SPACE and sorting == False:
                 sorting = True
+                sorting_algorithm_generator = sorting_algorithm(draw_info, ascending)
             
             elif event.key == pygame.K_a and sorting== False:
                 ascending = True
             
             elif event.key == pygame.K_d and sorting == False:
                 ascending = False
-    
+
+            # elif event.key == pygame.K_i and sorting ==False:
     pygame.quit()
 
- 
 if __name__ == '__main__':   # setting the top-level code (entry point code) to main(), useful when the script is imported as modules in other programs.
     main()
 
