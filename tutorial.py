@@ -46,17 +46,20 @@ def generate_starting_list(n, min_val, max_value):
 
     return lst
 
-def draw(draw_info):
+def draw(draw_info, algo_name, ascending):
     draw_info.window.fill(draw_info.BACKGROUND_COLOR)
+
+    title = draw_info.FONT.render(f"{algo_name} -{'Ascending' if ascending else 'Descending'}", 1, draw_info.RED)  
+    draw_info.window.blit(title, ( draw_info.width/2 - title.get_width()/2, 5))   
     
     controls = draw_info.FONT.render("R - RESET || SPACE - Start Sorting || A - Ascending || D - Descending", 1, draw_info.BLACK)  # for rendering the text
-    draw_info.window.blit(controls, ( draw_info.width/2 - controls.get_width()/2, 5))   # controls.get_width() is used to get the width of the text above.
+    draw_info.window.blit(controls, ( draw_info.width/2 - controls.get_width()/2, 25))   # controls.get_width() is used to get the width of the text above.
     # to center the text at the window.
     # blit is used to draw one surface on the top of another
     # In this case, controls is being drawn on top of the window
 
-    sorting = draw_info.FONT.render("B - Bubble Sort || I - Insertion Sort",1, draw_info.BLACK)  # for rendering the text, 1 is used for anti-aliasing effect (less pixelated)
-    draw_info.window.blit(sorting, ( draw_info.width/2 - sorting.get_width()/2, 25))   # controls.get_width() is used to get the width of the text above.
+    sorting = draw_info.FONT.render("B - Bubble Sort || I - Insertion Sort || S - Selection Sort ",1, draw_info.BLACK)  # for rendering the text, 1 is used for anti-aliasing effect (less pixelated)
+    draw_info.window.blit(sorting, ( draw_info.width/2 - sorting.get_width()/2, 45))   # controls.get_width() is used to get the width of the text above.
 
  
     draw_list(draw_info)     
@@ -101,6 +104,35 @@ def bubble_sort(draw_info, ascending = True):
 
 # next() # first time, next is called, only first 2 elements are swapped, second time next is called, the next two elements are swapped..and so on..it is used below
    
+def insertion_sort(draw_info, ascending = True):
+    lst = draw_info.lst
+
+    n = len(lst)
+    for i in range(1, n):
+        key = lst[i]
+        j = i - 1
+        while j >= 0 and ((key < lst[j] and ascending) or (key > lst[j] and not ascending)):
+            lst[j+1] = lst[j]
+            j -= 1
+            lst[j+1] = key
+            draw_list(draw_info, {j: draw_info.GREEN, j+1: draw_info.RED}, True)
+            yield True   # it allows to iterate upto this point 1 single time, using yield, the insertion sort function becomes a generator
+    return lst
+
+def selection_sort(draw_info, ascending = True):
+    lst = draw_info.lst
+
+    n = len(lst)
+    for i in range(n-1):
+        index = i
+        for j in range(i+1, n):
+            if ((lst[index] > lst[j]) and ascending) or ((lst[index] < lst[j]) and not ascending):
+              index = j
+        lst[i], lst[index] = lst[index], lst[i]
+        draw_list(draw_info, {index: draw_info.GREEN, i: draw_info.RED}, True)
+        yield True   # it allows to iterate upto this point 1 single time, using yield, the insertion sort function becomes a generator
+    return lst
+
 def main():
     run = True
     clock = pygame.time.Clock()    # decides the delay to show the changes made
@@ -114,12 +146,12 @@ def main():
     sorting = False
     ascending = True
 
-    sorting_algorithm = bubble_sort
-    sorting_algo_name = "Bubble Sort"
+    sorting_algorithm = None
+    algo_name = None
     sorting_algorithm_generator = None
 
     while run:
-        clock.tick(120)  # the higher the faster.
+        clock.tick(10)  # the higher the faster.
 
         if sorting:
             try:
@@ -127,7 +159,7 @@ def main():
             except StopIteration:   # once the generator is finished, stopIteration is handled
                 sorting = False
         else:
-            draw(draw_info)
+            draw(draw_info, algo_name, ascending)
 
         for event in pygame.event.get(): # gets every event that has been occuring in the running loop (running window)
             if event.type == pygame.QUIT:   # hitting the red cross button on the window screen
@@ -143,7 +175,7 @@ def main():
 
             elif event.key == pygame.K_SPACE and sorting == False:
                 sorting = True
-                sorting_algorithm_generator = sorting_algorithm(draw_info, ascending)
+                sorting_algorithm_generator = sorting_algorithm(draw_info, ascending) 
             
             elif event.key == pygame.K_a and sorting== False:
                 ascending = True
@@ -151,7 +183,18 @@ def main():
             elif event.key == pygame.K_d and sorting == False:
                 ascending = False
 
-            # elif event.key == pygame.K_i and sorting ==False:
+            elif event.key == pygame.K_i and sorting == False:
+                sorting_algorithm = insertion_sort
+                algo_name = "Insertion Sort"
+
+            elif event.key == pygame.K_b and sorting == False:
+                sorting_algorithm = bubble_sort
+                algo_name = "Bubble Sort"
+
+            elif event.key == pygame.K_s and sorting == False:
+                sorting_algorithm = selection_sort
+                algo_name = "Selection Sort"
+                
     pygame.quit()
 
 if __name__ == '__main__':   # setting the top-level code (entry point code) to main(), useful when the script is imported as modules in other programs.
